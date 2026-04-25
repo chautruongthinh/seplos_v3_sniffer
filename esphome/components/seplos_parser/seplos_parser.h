@@ -64,6 +64,7 @@ private:
 protected:
   std::vector<sensor::Sensor *> pack_voltage_;
   std::vector<sensor::Sensor *> current_;
+  std::vector<sensor::Sensor *> power_;
   std::vector<sensor::Sensor *> remaining_capacity_;
   std::vector<sensor::Sensor *> total_capacity_;
   std::vector<sensor::Sensor *> total_discharge_capacity_;

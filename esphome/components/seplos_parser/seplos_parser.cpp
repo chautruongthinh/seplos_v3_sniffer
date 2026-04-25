@@ -21,7 +21,7 @@ void SeplosParser::setup() {
        &cell_5_, &cell_6_, &cell_7_, &cell_8_, &cell_9_, &cell_10_,
        &cell_11_, &cell_12_, &cell_13_, &cell_14_, &cell_15_, &cell_16_,
        &cell_temp_1_, &cell_temp_2_, &cell_temp_3_, &cell_temp_4_,
-       &case_temp_, &power_temp_
+       &case_temp_, &power_temp_, &power_
    };
 
    for (auto *vec : sensor_vectors) {
@@ -54,7 +54,8 @@ void SeplosParser::setup() {
        {"cell_15", &cell_15_}, {"cell_16", &cell_16_}, {"cell_temp_1", &cell_temp_1_},
        {"cell_temp_2", &cell_temp_2_}, {"cell_temp_3", &cell_temp_3_},
        {"cell_temp_4", &cell_temp_4_}, {"case_temp", &case_temp_},
-       {"power_temp", &power_temp_}
+       {"power_temp", &power_temp_},
+	   {"power", &power_}
    };
 
    std::unordered_map<std::string, std::vector<text_sensor::TextSensor *> *> text_sensor_map = {
@@ -174,9 +175,13 @@ void SeplosParser::process_packet(size_t length) {
   if (buffer[2] == 0x24) {  // 36-Byte-Paket
     //ESP_LOGI("DEBUG", "buffer[3]: 0x%02X, buffer[4]: 0x%02X", buffer[3], buffer[4]);
     std::vector<std::pair<sensor::Sensor*, float>> updates;
-
-    updates.emplace_back(pack_voltage_[bms_index], (buffer[3] << 8 | buffer[4]) / 100.0f);
-    updates.emplace_back(current_[bms_index], (int16_t(buffer[5] << 8 | buffer[6])) / 100.0f);
+	float voltage = (buffer[3] << 8 | buffer[4]) / 100.0f;
+	float current = (int16_t(buffer[5] << 8 | buffer[6])) / 100.0f;
+	float power = voltage * current;
+ 
+	updates.emplace_back(pack_voltage_[bms_index], voltage);
+	updates.emplace_back(current_[bms_index], current);
+	updates.emplace_back(power_[bms_index], power);
     updates.emplace_back(remaining_capacity_[bms_index], (buffer[7] << 8 | buffer[8]) / 100.0f);
     updates.emplace_back(total_capacity_[bms_index], (buffer[9] << 8 | buffer[10]) / 100.0f);
     updates.emplace_back(total_discharge_capacity_[bms_index], (buffer[11] << 8 | buffer[12]) / 0.1f);
