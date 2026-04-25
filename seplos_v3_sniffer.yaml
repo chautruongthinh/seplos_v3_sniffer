@@ -1,636 +1,638 @@
+substitutions:
+  name: seplos-bms
+  battery_bank0: "bms0"
+  battery_bank1: "bms1"
+  device_description: "Monitor and control multiple Seplos V3 BMS via RS485 (Modbus)"
+  time: "3" # update interval for all data points
+ 
+esphome:
+  name: ${name}
+  comment: ${device_description} 
+
 external_components:
   - source:
       type: git
-      url: https://github.com/DpunktS/seplos_v3_sniffer
+      url: https://github.com/chautruongthinh/seplos_v3_sniffer
 
-esp32:
-  board: esp32dev
-  framework:
-    type: arduino
+esp8266:
+  board: nodemcuv2
 
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+ota:
+  platform: esphome
+
+logger:
+  #level: INFO
+  baud_rate: 0
+
+api:
+  
 uart:
 - id: seplos
-  tx_pin: GPIO1
-  rx_pin: GPIO3
+  tx_pin: GPIO4
+  rx_pin: GPIO5
   baud_rate: 19200
-  rx_buffer_size: 2048
 
-
-substitutions:
-  time: "5" # update interval for all data points
-  
 seplos_parser:
   id: seplos_v3
-  bms_count: 2  # Anzahl der Akku's (max. 16)
+  bms_count: 2
   update_interval: ${time}
-  uart_id: seplos  # SeplosParser verwendet diese UART ID
+  uart_id: seplos
 
 sensor:
  # bms0
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 pack_voltage
+    name: ${battery_bank0} pack_voltage
+    id: bms0_pack_voltage
     unit_of_measurement: "V"
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 current
+    name: ${battery_bank0} current
+    id: bms0_current
     unit_of_measurement: "A"
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 remaining_capacity
+    name: ${battery_bank0} remaining_capacity
     unit_of_measurement: "Ah"
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 total_capacity
+    name: ${battery_bank0} total_capacity
     unit_of_measurement: "Ah"
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 total_discharge_capacity
+    name: ${battery_bank0} total_discharge_capacity
     unit_of_measurement: "Ah"
     accuracy_decimals: 0
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 soc
+    name: ${battery_bank0} soc
     unit_of_measurement: "%"
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 soh
+    name: ${battery_bank0} soh
     unit_of_measurement: "%"
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cycle_count
+    name: ${battery_bank0} cycle_count
     unit_of_measurement: "cycles"
     accuracy_decimals: 0
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 average_cell_voltage
+    name: ${battery_bank0} average_cell_voltage
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 average_cell_temp
+    name: ${battery_bank0} average_cell_temp
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 max_cell_voltage
+    name: ${battery_bank0} max_cell_voltage
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 min_cell_voltage
+    name: ${battery_bank0} min_cell_voltage
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
         - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 delta_cell_voltage
+    name: ${battery_bank0} delta_cell_voltage
     unit_of_measurement: mV
     accuracy_decimals: 0
     filters:
         - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 max_cell_temp
+    name: ${battery_bank0} max_cell_temp
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 min_cell_temp
+    name: ${battery_bank0} min_cell_temp
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 maxdiscurt
+    name: ${battery_bank0} maxdiscurt
     unit_of_measurement: A
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 maxchgcurt
+    name: ${battery_bank0} maxchgcurt
     unit_of_measurement: A
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_1
+    name: ${battery_bank0} cell_1
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_2
+    name: ${battery_bank0} cell_2
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_3
+    name: ${battery_bank0} cell_3
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_4
+    name: ${battery_bank0} cell_4
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_5
+    name: ${battery_bank0} cell_5
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_5
+    name: ${battery_bank0} cell_5
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_6
+    name: ${battery_bank0} cell_6
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_7
+    name: ${battery_bank0} cell_7
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_8
+    name: ${battery_bank0} cell_8
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_9
+    name: ${battery_bank0} cell_9
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_10
+    name: ${battery_bank0} cell_10
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_11
+    name: ${battery_bank0} cell_11
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_12
+    name: ${battery_bank0} cell_12
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_13
+    name: ${battery_bank0} cell_13
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_14
+    name: ${battery_bank0} cell_14
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_15
+    name: ${battery_bank0} cell_15
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_16
+    name: ${battery_bank0} cell_16
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_temp_1
+    name: ${battery_bank0} cell_temp_1
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_temp_2
+    name: ${battery_bank0} cell_temp_2
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_temp_3
+    name: ${battery_bank0} cell_temp_3
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 cell_temp_4
+    name: ${battery_bank0} cell_temp_4
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 case_temp
+    name: ${battery_bank0} case_temp
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 power_temp
+    name: ${battery_bank0} power_temp
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
+  - platform: seplos_parser
+    seplos_parser_id: seplos_v3
+    name: ${battery_bank0} power
+    unit_of_measurement: "W"
+    accuracy_decimals: 0
+    filters:
+      - throttle: ${time}s
+
  # bms1
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 pack_voltage
+    name: ${battery_bank1} pack_voltage
+    id: bms1_pack_voltage
     unit_of_measurement: "V"
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 current
+    name: ${battery_bank1} current
+    id: bms1_current
     unit_of_measurement: "A"
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 remaining_capacity
+    name: ${battery_bank1} remaining_capacity
     unit_of_measurement: "Ah"
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 total_capacity
+    name: ${battery_bank1} total_capacity
     unit_of_measurement: "Ah"
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 total_discharge_capacity
+    name: ${battery_bank1} total_discharge_capacity
     unit_of_measurement: "Ah"
     accuracy_decimals: 0
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 soc
+    name: ${battery_bank1} soc
     unit_of_measurement: "%"
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 soh
+    name: ${battery_bank1} soh
     unit_of_measurement: "%"
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cycle_count
+    name: ${battery_bank1} cycle_count
     unit_of_measurement: "cycles"
     accuracy_decimals: 0
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 average_cell_voltage
+    name: ${battery_bank1} average_cell_voltage
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 average_cell_temp
+    name: ${battery_bank1} average_cell_temp
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 max_cell_voltage
+    name: ${battery_bank1} max_cell_voltage
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 min_cell_voltage
+    name: ${battery_bank1} min_cell_voltage
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
         - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 delta_cell_voltage
+    name: ${battery_bank1} delta_cell_voltage
     unit_of_measurement: mV
     accuracy_decimals: 0
     filters:
         - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 max_cell_temp
+    name: ${battery_bank1} max_cell_temp
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 min_cell_temp
+    name: ${battery_bank1} min_cell_temp
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 maxdiscurt
+    name: ${battery_bank1} maxdiscurt
     unit_of_measurement: A
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 maxchgcurt
+    name: ${battery_bank1} maxchgcurt
     unit_of_measurement: A
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_1
+    name: ${battery_bank1} cell_1
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_2
+    name: ${battery_bank1} cell_2
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_3
+    name: ${battery_bank1} cell_3
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_4
+    name: ${battery_bank1} cell_4
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_5
+    name: ${battery_bank1} cell_5
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_5
+    name: ${battery_bank1} cell_5
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_6
+    name: ${battery_bank1} cell_6
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_7
+    name: ${battery_bank1} cell_7
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_8
+    name: ${battery_bank1} cell_8
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_9
+    name: ${battery_bank1} cell_9
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_10
+    name: ${battery_bank1} cell_10
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_11
+    name: ${battery_bank1} cell_11
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_12
+    name: ${battery_bank1} cell_12
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_13
+    name: ${battery_bank1} cell_13
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_14
+    name: ${battery_bank1} cell_14
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_15
+    name: ${battery_bank1} cell_15
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_16
+    name: ${battery_bank1} cell_16
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_temp_1
+    name: ${battery_bank1} cell_temp_1
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_temp_2
+    name: ${battery_bank1} cell_temp_2
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_temp_3
+    name: ${battery_bank1} cell_temp_3
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 cell_temp_4
+    name: ${battery_bank1} cell_temp_4
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 case_temp
+    name: ${battery_bank1} case_temp
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 power_temp
+    name: ${battery_bank1} power_temp
     unit_of_measurement: °C
     accuracy_decimals: 1
     filters:
       - throttle: ${time}s
 
+  - platform: seplos_parser
+    seplos_parser_id: seplos_v3
+    name: ${battery_bank1} power
+    unit_of_measurement: "W"
+    accuracy_decimals: 0
+    filters:
+      - throttle: ${time}s 
+
 text_sensor:
  # bms0
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms0 system_status
-  - platform: seplos_parser
-    seplos_parser_id: seplos_v3
-    name: bms0 active_balancing_cells
-  - platform: seplos_parser
-    seplos_parser_id: seplos_v3
-    name: bms0 cell_temperature_alarms
-  - platform: seplos_parser
-    seplos_parser_id: seplos_v3
-    name: bms0 cell_voltage_alarms
-  - platform: seplos_parser
-    seplos_parser_id: seplos_v3
-    name: bms0 FET_status
-  - platform: seplos_parser
-    seplos_parser_id: seplos_v3
-    name: bms0 active_alarms
-  - platform: seplos_parser
-    seplos_parser_id: seplos_v3
-    name: bms0 active_protections
+    name: ${battery_bank0} system_status
+
  # bms1
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
-    name: bms1 system_status
-  - platform: seplos_parser
-    seplos_parser_id: seplos_v3
-    name: bms1 active_balancing_cells
-  - platform: seplos_parser
-    seplos_parser_id: seplos_v3
-    name: bms1 cell_temperature_alarms
-  - platform: seplos_parser
-    seplos_parser_id: seplos_v3
-    name: bms1 cell_voltage_alarms
-  - platform: seplos_parser
-    seplos_parser_id: seplos_v3
-    name: bms1 FET_status
-  - platform: seplos_parser
-    seplos_parser_id: seplos_v3
-    name: bms1 active_alarms
-  - platform: seplos_parser
-    seplos_parser_id: seplos_v3
-    name: bms1 active_protections
+    name: ${battery_bank1} system_status

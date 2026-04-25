@@ -4,7 +4,6 @@
 #include "esphome/core/defines.h"
 #include "esphome/components/uart/uart.h"
 #include <vector>
-#include <deque>
 
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
@@ -52,14 +51,13 @@ class SeplosParser : public uart::UARTDevice, public Component {
   size_t get_expected_length();
   bool validate_crc(size_t length);
   void process_packet(size_t length);
-  uint16_t calculate_modbus_crc(const std::deque<uint8_t> &data, size_t length);
+  uint16_t calculate_modbus_crc(const std::vector<uint8_t> &data, size_t length);
 
 private:
   int bms_count_;  // Variable zur Speicherung von bms_count
   uint32_t update_interval_;
   std::vector<uint32_t> last_updates_; // Timer für jedes BMS-Gerät
-  //std::vector<uint8_t> buffer;
-  std::deque<uint8_t> buffer;
+  std::vector<uint8_t> buffer;
 
 protected:
   std::vector<sensor::Sensor *> pack_voltage_;
