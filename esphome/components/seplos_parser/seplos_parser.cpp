@@ -2,19 +2,17 @@
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
-#include <sstream>
-#include <unordered_map>
+#include <utility>
 
 namespace esphome {
 namespace seplos_parser {
 
-static const char *TAG = "seplos_parser.component";
-
 void SeplosParser::setup() {
-  buffer.reserve(128);
+  last_updates_.assign(bms_count_, {});
+  updated_groups_.assign(bms_count_, 0);
 
   // Initialisierung der Sensorvektoren
-  std::vector<std::vector<sensor::Sensor *> *> sensor_vectors = {
+  std::vector<sensor::Sensor *> *sensor_vectors[] = {
       &pack_voltage_,
       &current_,
       &remaining_capacity_,
@@ -60,7 +58,7 @@ void SeplosParser::setup() {
     vec->resize(bms_count_, nullptr);
   }
 
-  std::vector<std::vector<text_sensor::TextSensor *> *> text_sensor_vectors = {
+  std::vector<text_sensor::TextSensor *> *text_sensor_vectors[] = {
       &system_status_,
       &active_balancing_cells_,
       &cell_temperature_alarms_,
@@ -74,7 +72,7 @@ void SeplosParser::setup() {
   }
 
   // Zuordnung der Sensornamen zu den jeweiligen Vektoren
-  std::unordered_map<std::string, std::vector<sensor::Sensor *> *> sensor_map =
+  const std::pair<const char *, std::vector<sensor::Sensor *> *> sensor_map[] =
       {{"pack_voltage", &pack_voltage_},
        {"current", &current_},
        {"remaining_capacity", &remaining_capacity_},
@@ -116,8 +114,8 @@ void SeplosParser::setup() {
        {"power_temp", &power_temp_},
        {"power", &power_}};
 
-  std::unordered_map<std::string, std::vector<text_sensor::TextSensor *> *>
-      text_sensor_map = {{"system_status", &system_status_},
+  const std::pair<const char *, std::vector<text_sensor::TextSensor *> *>
+      text_sensor_map[] = {{"system_status", &system_status_},
                          {"active_balancing_cells", &active_balancing_cells_},
                          {"cell_temperature_alarms", &cell_temperature_alarms_},
                          {"cell_voltage_alarms", &cell_voltage_alarms_},
@@ -127,7 +125,7 @@ void SeplosParser::setup() {
 
   // Zuordnung der Sensor-Objekte
   for (auto &entry : sensor_map) {
-    const std::string &name = entry.first;
+    const char *name = entry.first;
     std::vector<sensor::Sensor *> *sensor_vector = entry.second;
 
     for (int i = 0; i < bms_count_; i++) {
@@ -142,7 +140,7 @@ void SeplosParser::setup() {
 
   // Zuordnung der Text-Sensor-Objekte
   for (auto &entry : text_sensor_map) {
-    const std::string &name = entry.first;
+    const char *name = entry.first;
     std::vector<text_sensor::TextSensor *> *text_sensor_vector = entry.second;
 
     for (int i = 0; i < bms_count_; i++) {
@@ -157,67 +155,79 @@ void SeplosParser::setup() {
 }
 
 void SeplosParser::loop() {
-  while (available()) {
-    uint8_t byte = read();
+  // Bound work even when the line is continuously noisy. Do not stop after
+  // just one packet: a UART backlog often contains several complete responses.
+  const uint32_t started = millis();
+  size_t bytes_read = 0;
+  while (bytes_read < 256 && available() && uint32_t(millis() - started) < 5) {
+    uint8_t byte;
+    if (!read_byte(&byte))
+      break;
     buffer.push_back(byte);
-
-    if (buffer.size() > 100) {
-      buffer.erase(buffer.begin());
-    }
-
-    if (buffer.size() >= 5) {
-      if (!is_valid_header()) {
-        buffer.erase(buffer.begin());
-        continue;
-      }
-
-      size_t expected_length = get_expected_length();
-      if (buffer.size() >= expected_length) {
-        if (validate_crc(expected_length)) {
-          process_packet(expected_length);
-          // buffer.clear();
-          buffer.erase(buffer.begin(), buffer.begin() + expected_length);
-          return; // Nach dem Verarbeiten eines Pakets direkt aus der loop()
-                  // aussteigen
-        } else {
-          buffer.erase(buffer.begin());
-        }
-      }
-    }
+    last_rx_ms_ = millis();
+    ++bytes_read;
+    parse_buffer_();
   }
+
+  // This is a stalled-stream recovery timeout, not RTU gap detection: UART
+  // bytes can have been buffered while other ESPHome components were running.
+  if (!available() && buffer.size() && uint32_t(millis() - last_rx_ms_) >= 100)
+    parse_buffer_(true);
+}
+
+void SeplosParser::parse_buffer_(bool discard_incomplete) {
+  while (buffer.size() >= 3) {
+    const size_t length = get_expected_length();
+    if (length == 0) {
+      buffer.discard(1);
+      continue;
+    }
+    if (buffer.size() < length) {
+      if (!discard_incomplete)
+        return;
+      buffer.discard(1);
+      continue;
+    }
+    if (!validate_crc(length)) {
+      buffer.discard(1);
+      continue;
+    }
+    process_packet(length);
+    buffer.discard(length);
+  }
+  if (discard_incomplete)
+    buffer.discard(buffer.size());
 }
 
 bool SeplosParser::is_valid_header() {
-  return ((buffer[0] >= 0x01 && buffer[0] <= 0x10 && buffer[1] == 0x04 &&
+  return buffer.size() >= 3 && ((buffer[0] >= 0x01 && buffer[0] <= 0x10 && buffer[1] == 0x04 &&
            (buffer[2] == 0x24 || buffer[2] == 0x34)) ||
           (buffer[0] >= 0x01 && buffer[0] <= 0x10 && buffer[1] == 0x01 &&
            buffer[2] == 0x12));
 }
 size_t SeplosParser::get_expected_length() {
-  // +3 Header, +2 CRC, =+5
-  if (buffer[2] == 0x24) {
-    return 41;
-  } // (0x24) 36+5=41
-  if (buffer[2] == 0x34) {
-    return 57;
-  } // (0x34) 52+5=57
-  if (buffer[1] == 0x01 && buffer[2] == 0x12) {
-    return 23;
-  }         // (0x12) 18+5=23
-  return 0; // If an invalid packet arrives
+  return is_valid_header() ? size_t(buffer[2]) + 5 : 0;
 }
 bool SeplosParser::validate_crc(size_t length) {
+  if (length < 5 || length > buffer.size())
+    return false;
   uint16_t received_crc = (buffer[length - 1] << 8) | buffer[length - 2];
   uint16_t calculated_crc = calculate_modbus_crc(buffer, length - 2);
   return received_crc == calculated_crc;
 }
 
 void SeplosParser::process_packet(size_t length) {
+  if (length == 0 || length != get_expected_length() || length > buffer.size())
+    return;
   int bms_index = buffer[0] - 0x01;
   if (bms_index < 0 || bms_index >= bms_count_) {
-    ESP_LOGW("seplos", "Ungültige BMS-ID: %d", buffer[0]);
+    // Other packs on the bus are normal; do not flood logs.
     return;
   }
+
+  const uint8_t group = buffer[2] == 0x24 ? 0 : (buffer[2] == 0x34 ? 1 : 2);
+  if (!should_update(bms_index, group))
+    return;
 
   auto publish_sensor = [&](const std::vector<sensor::Sensor *> &sensor_vec, float value) {
     if (sensor_vec[bms_index]) {
@@ -278,9 +288,6 @@ void SeplosParser::process_packet(size_t length) {
   }
 
   if (buffer[2] == 0x12) {
-    if (!should_update(bms_index))
-      return;
-
     std::string active_alarms, active_protections, system_status_str, fet_status_str;
     std::string volt_str, temp_str, balancing_str, high_volt_str, high_temp_str;
 
@@ -426,7 +433,7 @@ const uint16_t crc_table[256] = {
     0x4540, 0x8701, 0x47C0, 0x4680, 0x8641, 0x8201, 0x42C0, 0x4380, 0x8341,
     0x4100, 0x81C1, 0x8081, 0x4040};
 
-uint16_t SeplosParser::calculate_modbus_crc(const std::vector<uint8_t> &data,
+uint16_t SeplosParser::calculate_modbus_crc(const FrameBuffer &data,
                                             size_t length) {
   uint16_t crc = 0xFFFF;
   for (size_t i = 0; i < length; i++) {
@@ -437,11 +444,6 @@ uint16_t SeplosParser::calculate_modbus_crc(const std::vector<uint8_t> &data,
 }
 
 void SeplosParser::dump_config() {
-  for (int i = 0; i < bms_count_; i++) {
-    last_updates_[i] = millis();
-    // ESP_LOGD("SeplosParser", "Initialisiere Timer für BMS %d: %u", i,
-    // last_updates_[i]);
-  }
   for (auto *sensor : this->sensors_) {
     LOG_SENSOR("  ", "Sensor", sensor);
   }
@@ -455,31 +457,26 @@ void SeplosParser::dump_config() {
   //    }
 }
 void SeplosParser::set_bms_count(int bms_count) {
-  this->bms_count_ = bms_count;       // Wert speichern
-  last_updates_.resize(bms_count, 0); // Dynamische Größe
-  ESP_LOGI("SeplosParser", "BMS Count gesetzt auf: %d", bms_count);
+  this->bms_count_ = bms_count < 1 ? 1 : (bms_count > 16 ? 16 : bms_count);
+  last_updates_.assign(bms_count_, {});
+  updated_groups_.assign(bms_count_, 0);
 }
 void SeplosParser::set_update_interval(int update_interval) {
-  this->update_interval_ = update_interval * 1000;
-  ESP_LOGI("SeplosParser", "update interval: %d", update_interval);
+  const uint32_t seconds = update_interval < 0 ? 0 :
+      (update_interval > 2147483 ? 2147483 : update_interval);
+  this->update_interval_ = seconds * 1000U;
 }
-bool SeplosParser::should_update(int bms_index) {
-  if (bms_index < 0 || bms_index >= bms_count_) {
-    // ESP_LOGW("SeplosParser", "Ungültiger BMS-Index: %d (max: %d)", bms_index,
-    // bms_count_);
-    return false; // Ungültiger Index
-  }
-
-  uint32_t now = millis();
-  // ESP_LOGD("SeplosParser", "BMS %d: now=%u, last_update=%u, interval=%u",
-  //           bms_index, now, last_updates_[bms_index], update_interval_);
-  if (now - last_updates_[bms_index] >= update_interval_) {
-    last_updates_[bms_index] =
-        now; // Setze den Timer für dieses BMS-Gerät zurück
-    // ESP_LOGD("SeplosParser", "Update für BMS %d durchgeführt", bms_index);
+bool SeplosParser::should_update(int bms_index, uint8_t group) {
+  if (bms_index < 0 || bms_index >= bms_count_ || group >= 3)
+    return false;
+  const uint32_t now = millis();
+  const uint8_t mask = 1U << group;
+  if (!(updated_groups_[bms_index] & mask) ||
+      uint32_t(now - last_updates_[bms_index][group]) >= update_interval_) {
+    last_updates_[bms_index][group] = now;
+    updated_groups_[bms_index] |= mask;
     return true;
   }
-  // ESP_LOGD("SeplosParser", "Kein Update für BMS %d nötig", bms_index);
   return false;
 }
 
