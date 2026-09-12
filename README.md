@@ -22,39 +22,13 @@ response publishes immediately. Numeric decoding and publishing are now skipped
 until that group's interval expires, rather than running sensor filters for
 every response. `0` publishes every valid response and increases CPU/network
 load; it cannot make the BMS transmit faster. The example retains 3 seconds.
-Try 1 second after testing the actual device; use 0 only after checking sustained
-load. `bms_count` must be 1–16. Names must still follow `bms0 pack_voltage`,
+`bms_count` must be 1–16. Names must still follow `bms0 pack_voltage`,
 `bms1 cell_1`, etc.; changing the `battery_bank` prefixes breaks name binding.
 
-The example removes the duplicate `cell_5` entries in both packs and redundant
-numeric throttle filters, sets logging to WARN, and increases the UART receive
-buffer to 512 bytes. GPIO4/GPIO5 and 19200 baud are deliberately unchanged.
-The UART buffer and parser ring serve different purposes; the extra UART buffer
-provides backlog headroom but cannot recover bytes already lost on the wire.
-
-### Optional hardware UART (requires checking/changing wiring)
-
-GPIO4/GPIO5 uses software UART. ESPHome supports hardware UART0 on GPIO1/GPIO3
-or GPIO15/GPIO13; hardware UART reduces software timing work. See the
-[official ESPHome UART documentation](https://esphome.io/components/uart/#hardware-uarts).
-For an RX-only sniffer, after moving the adapter's **RO** wire to GPIO3, replace
-the existing UART entry with:
-
-```yaml
-uart:
-  - id: seplos
-    rx_pin: GPIO3
-    baud_rate: 19200
-    rx_buffer_size: 512
-```
-
-Keep `logger.baud_rate: 0`. Check that the board's USB-to-serial transmitter is
-not also driving GPIO3; disconnect/isolate it if needed. Use 3.3 V-compatible
-receiver output and common ground. Keep the RS485 driver disabled (DE low,
-receiver enabled as required by your adapter) and do not connect ESP TX to the
-bus driver for passive sniffing. Do not change bus baud rate or BMS wiring to
-seek faster updates. Confirm hardware UART selection with a temporary INFO
-startup log before reverting to WARN.
+The existing YAML is preserved byte-for-byte: board, pins, logging, UART buffers,
+sensor names and filters are not changed by this PR. Existing throttle filters
+can stay in place; parser-side throttling avoids decoding intermediate numeric
+responses before those filters run. No wiring change is required by the parser.
 
 ### Validation before flashing
 
