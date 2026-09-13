@@ -7,6 +7,9 @@
 namespace esphome {
 namespace seplos_parser {
 
+// Required by ESPHome's LOG_SENSOR and LOG_TEXT_SENSOR macros.
+static const char *const TAG = "seplos_parser.component";
+
 void SeplosParser::setup() {
   last_updates_.assign(bms_count_, {});
   updated_groups_.assign(bms_count_, 0);
