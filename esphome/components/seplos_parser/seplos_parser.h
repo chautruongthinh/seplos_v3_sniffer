@@ -4,6 +4,8 @@
 #include "esphome/core/defines.h"
 #include "esphome/components/uart/uart.h"
 #include <vector>
+#include <array>
+#include "frame_buffer.h"
 
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
@@ -47,17 +49,20 @@ class SeplosParser : public uart::UARTDevice, public Component {
   void loop() override;
   void dump_config() override;
   bool is_valid_header();
-  bool should_update(int bms_index);
+  bool should_update(int bms_index, uint8_t group = 2);
   size_t get_expected_length();
   bool validate_crc(size_t length);
   void process_packet(size_t length);
-  uint16_t calculate_modbus_crc(const std::vector<uint8_t> &data, size_t length);
+  uint16_t calculate_modbus_crc(const FrameBuffer &data, size_t length);
 
 private:
-  int bms_count_;  // Variable zur Speicherung von bms_count
-  uint32_t update_interval_;
-  std::vector<uint32_t> last_updates_; // Timer für jedes BMS-Gerät
-  std::vector<uint8_t> buffer;
+  void parse_buffer_(bool discard_incomplete = false);
+  int bms_count_{1};
+  uint32_t update_interval_{5000};
+  std::vector<std::array<uint32_t, 3>> last_updates_{1};
+  std::vector<uint8_t> updated_groups_ = std::vector<uint8_t>(1, 0);
+  uint32_t last_rx_ms_{0};
+  FrameBuffer buffer;
 
 protected:
   std::vector<sensor::Sensor *> pack_voltage_;

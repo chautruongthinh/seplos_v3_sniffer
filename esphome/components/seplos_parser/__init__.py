@@ -4,6 +4,7 @@ from esphome.components import uart
 from esphome.const import CONF_ID
 
 DEPENDENCIES = ["uart"]
+AUTO_LOAD = ["sensor", "text_sensor"]
 
 MULTI_CONF = True
 
@@ -24,8 +25,10 @@ HUB_CHILD_SCHEMA = cv.Schema(
 CONFIG_SCHEMA = ( 
     cv.Schema({
         cv.GenerateID(): cv.declare_id(SeplosParser),
-        cv.Optional(CONF_UPDATE_INTERVAL, default=5): cv.int_,
-        cv.Optional(CONF_BMS_COUNT, default=1): cv.int_,
+        # Seconds; zero publishes every valid response. Keep milliseconds
+        # within the signed half of the uint32_t clock range.
+        cv.Optional(CONF_UPDATE_INTERVAL, default=5): cv.int_range(min=0, max=2147483),
+        cv.Optional(CONF_BMS_COUNT, default=1): cv.int_range(min=1, max=16),
     })
         .extend(cv.COMPONENT_SCHEMA)
         .extend(uart.UART_DEVICE_SCHEMA)
